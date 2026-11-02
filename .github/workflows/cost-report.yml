@@ -1,0 +1,35 @@
+name: Generate Cost Report
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Summarize sample costs
+        run: |
+          python scripts/summarize_costs.py \
+            sample-data/sample-costs.csv \
+            --output reports
+
+      - name: Upload sample reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: sample-cost-reports
+          path: reports/
+          if-no-files-found: error
+          retention-days: 7
