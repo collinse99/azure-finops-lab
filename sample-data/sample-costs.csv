@@ -1,11 +1,6 @@
-Date,ResourceGroup,ServiceName,ResourceName,CostInBillingCurrency,BillingCurrency
-2026-11-01,rg-image-build,Virtual Machines,packer-build-vm,0.12,USD
-2026-11-01,rg-image-build,Storage,packer-os-disk,0.03,USD
-2026-11-01,rg-image-lab,Storage,rhel8-golden-lab,0.08,USD
-2026-11-02,rg-image-build,Virtual Machines,packer-build-vm,0.24,USD
-2026-11-02,rg-image-test,Virtual Machines,rhel8-test,0.35,USD
-2026-11-02,rg-image-test,Storage,rhel8-test-disk,0.06,USD
-2026-11-02,rg-image-test,Azure Bastion,test-bastion,0.40,USD
-2026-11-02,rg-image-test,Virtual Network,test-public-ip,0.02,USD
-2026-11-02,rg-image-lab,Storage,rhel8-golden-lab,0.08,USD
-2026-11-02,rg-finops-lab,Storage,cost-export-storage,0.01,USD
+invoiceId,previousInvoiceId,billingAccountId,billingAccountName,billingProfileId,billingProfileName,invoiceSectionId,invoiceSectionName,resellerName,resellerMpnId,costCenter,billingPeriodEndDate,billingPeriodStartDate,servicePeriodEndDate,servicePeriodStartDate,date,serviceFamily,productOrderId,productOrderName,consumedService,meterId,meterName,meterCategory,meterSubCategory,meterRegion,ProductId,ProductName,SubscriptionId,subscriptionName,publisherType,publisherId,publisherName,resourceGroupName,ResourceId,resourceLocation,location,effectivePrice,quantity,unitOfMeasure,chargeType,billingCurrency,pricingCurrency,costInBillingCurrency,costInPricingCurrency,costInUsd,paygCostInBillingCurrency,paygCostInUsd,exchangeRatePricingToBilling,exchangeRateDate,isAzureCreditEligible,serviceInfo1,serviceInfo2,additionalInfo,tags,PayGPrice,frequency,term,reservationId,reservationName,pricingModel,unitPrice,costAllocationRuleName,benefitId,benefitName,provider
+,,,,,,,,,,,,,,,2026-11-01,,,,Microsoft.Compute,,,Virtual Machines,,,,,,,,,rg-image-build,/subscriptions/sample-sub/resourceGroups/rg-image-build/providers/Microsoft.Compute/virtualMachines/packer-build-vm,,,,,,Usage,USD,,0.12,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,2026-11-01,,,,Microsoft.Compute,,,Storage,,,,,,,,,rg-image-build,/subscriptions/sample-sub/resourceGroups/rg-image-build/providers/Microsoft.Compute/disks/packer-os-disk,,,,,,Usage,USD,,0.03,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,2026-11-01,,,,Microsoft.Compute,,,Storage,,,,,,,,,rg-image-lab,/subscriptions/sample-sub/resourceGroups/rg-image-lab/providers/Microsoft.Compute/images/rhel8-golden-lab,,,,,,Usage,USD,,0.08,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,2026-11-02,,,,Microsoft.Compute,,,Virtual Machines,,,,,,,,,rg-image-test,/subscriptions/sample-sub/resourceGroups/rg-image-test/providers/Microsoft.Compute/virtualMachines/rhel8-test,,,,,,Usage,USD,,0.35,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,2026-11-02,,,,Microsoft.Network,,,Azure Bastion,,,,,,,,,rg-image-test,/subscriptions/sample-sub/resourceGroups/rg-image-test/providers/Microsoft.Network/bastionHosts/test-bastion,,,,,,Usage,USD,,0.40,,,,,,,,,,,,,,,,,,,,,,
