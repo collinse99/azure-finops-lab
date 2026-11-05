@@ -1,35 +1,148 @@
 name: Generate Cost Report
 
+# Run this workflow manually from GitHub's Actions page.
 on:
   workflow_dispatch:
 
 permissions:
+  # Allow the workflow to read files in this repository.
   contents: read
 
+  # Allow GitHub to request an identity token for Azure login.
+  id-token: write
+
 jobs:
+  # One job named "report" performs all the steps below.
   report:
+    # Use a temporary Linux machine provided by GitHub.
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+
+    # Stop the job if it takes longer than 10 minutes.
+    timeout-minutes: 10
+
+    # Shared values used by the download commands.
+    env:
+      STORAGE_ACCOUNT: stecfinopslab01
+      CONTAINER: cost-exports
 
     steps:
+      # STEP 1: Copy our repository onto the temporary machine.
+      # This includes scripts/summarize_costs.py.
       - name: Check out repository
         uses: actions/checkout@v5
 
+      # STEP 2: Make Python 3.12 available to run our script.
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
           python-version: "3.12"
 
-      - name: Summarize sample costs
+      # STEP 3: Authenticate to Azure using OIDC.
+      # GitHub proves its identity to Entra ID.
+      # These secrets identify the Azure app, tenant, and subscription.
+      # No Azure password or client secret is used.
+      - name: Sign in to Azure
+        uses: azure/login@v3
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      # STEP 4: Locate the newest CSV export for the current month.
+      # This selects a file; it does not download the cost CSV yet.
+      - name: Find latest current-month export
+        shell: bash
+        run: |
+          # Stop if a command fails or a required variable is missing.
+          set -euo pipefail
+
+          # Create a local folder for downloaded data.
+          mkdir -p data
+
+          # Build the current month's folder name.
+          # Example: 20261101-20261130
+          PERIOD="$(date -u +%Y%m01)-$(date -u -d "$(date -u +%Y-%m-01) +1 month -1 day" +%Y%m%d)"
+
+          # Build the path inside our storage container.
+          PREFIX="actual-costs/actual-costs-actual-cost/${PERIOD}/"
+
+          # Ask Azure for the list of files under that path.
+          # Save their names and timestamps locally as JSON.
+          az storage blob list \
+            --account-name "$STORAGE_ACCOUNT" \
+            --container-name "$CONTAINER" \
+            --prefix "$PREFIX" \
+            --auth-mode login \
+            --output json > data/blobs.json
+
+          # Use a short Python program to select the newest CSV.
+          python - <<'PY'
+          import json
+          import os
+
+          # Read the file list returned by Azure.
+          blobs = json.load(open("data/blobs.json"))
+
+          # Keep only CSV files, excluding files such as manifest.json.
+          files = [b for b in blobs if b["name"].endswith(".csv")]
+          if not files:
+              raise SystemExit("No current-month CSV export found.")
+
+          # Choose the CSV with the newest modification timestamp.
+          latest = max(files, key=lambda b: b["properties"]["lastModified"])
+
+          # Check whether that export is split across multiple CSVs.
+          directory = latest["name"].rsplit("/", 1)[0]
+          parts = [b for b in files
+                   if b["name"].rsplit("/", 1)[0] == directory]
+
+          # Our lab currently has one CSV per export.
+          # Stop rather than produce incomplete totals if that changes.
+          if len(parts) != 1:
+              raise SystemExit(
+                  "Export has multiple CSV parts; update downloader to "
+                  "process the complete export before reporting."
+              )
+
+          # Show exactly which file was selected in the job log.
+          print("Selected blob:", latest["name"])
+          print("Last modified:", latest["properties"]["lastModified"])
+
+          # Pass the selected file's path to the next workflow step.
+          with open(os.environ["GITHUB_ENV"], "a") as target:
+              target.write(f"COST_BLOB={latest['name']}\n")
+          PY
+
+      # STEP 5: Download the selected CSV from Azure Storage.
+      # Save it on the GitHub runner as data/actual-costs.csv.
+      - name: Download live costs
+        shell: bash
+        run: |
+          set -euo pipefail
+          az storage blob download \
+            --account-name "$STORAGE_ACCOUNT" \
+            --container-name "$CONTAINER" \
+            --name "$COST_BLOB" \
+            --file data/actual-costs.csv \
+            --auth-mode login \
+            --output none
+
+      # STEP 6: Run our existing cost-analysis script.
+      # It reads the downloaded CSV and creates reports grouped by:
+      # date, resource group, service, and resource.
+      - name: Summarize live costs
         run: |
           python scripts/summarize_costs.py \
-            sample-data/sample-costs.csv \
+            data/actual-costs.csv \
             --output reports
 
-      - name: Upload sample reports
+      # STEP 7: Preserve the reports as a downloadable GitHub artifact.
+      # The temporary runner disappears after the job finishes.
+      # The artifact keeps our reports available for seven days.
+      - name: Upload live reports
         uses: actions/upload-artifact@v6
         with:
-          name: sample-cost-reports
+          name: live-cost-reports
           path: reports/
           if-no-files-found: error
           retention-days: 7
